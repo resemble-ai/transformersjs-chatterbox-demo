@@ -7,7 +7,7 @@ const modes = [
   {
     to: '/playground',
     title: 'Playground',
-    description: 'Explore all Chatterbox features. Record your voice, adjust emotion, add tags.',
+    description: 'Explore all Chatterbox features. Record your voice, adjust expressiveness, and generate speech.',
     gradient: 'from-violet-600 to-purple-600',
     icon: (
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.5} className="w-8 h-8">
@@ -82,7 +82,7 @@ export default function HomePage() {
           </span>
         </h1>
         <p className="text-zinc-400 text-lg max-w-xl mx-auto">
-          100% in-browser text-to-speech with zero-shot voice cloning, emotion control, and paralinguistic tags.
+          100% in-browser text-to-speech with zero-shot voice cloning and expressiveness control.
           Powered by{' '}
           <a
             href="https://github.com/huggingface/transformers.js"
