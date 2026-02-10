@@ -4,17 +4,6 @@ export const DEFAULT_EXAGGERATION = 0.5
 export const MIN_EXAGGERATION = 0
 export const MAX_EXAGGERATION = 1.5
 
-export const PARALINGUISTIC_TAGS = [
-  { tag: '[laugh]', label: 'Laugh' },
-  { tag: '[sigh]', label: 'Sigh' },
-  { tag: '[cough]', label: 'Cough' },
-  { tag: '[sniffle]', label: 'Sniffle' },
-  { tag: '[groan]', label: 'Groan' },
-  { tag: '[gasp]', label: 'Gasp' },
-  { tag: '[yawn]', label: 'Yawn' },
-  { tag: '[clearing throat]', label: 'Clear Throat' },
-]
-
 export const ECHO_TEMPLATES = [
   { id: 'birthday', label: 'Birthday', emoji: '🎂', gradient: 'from-pink-600 to-purple-600' },
   { id: 'thankyou', label: 'Thank You', emoji: '💜', gradient: 'from-violet-600 to-indigo-600' },

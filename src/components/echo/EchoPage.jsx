@@ -6,7 +6,7 @@ import VoiceRecorder from '../shared/VoiceRecorder'
 import AudioPlayer from '../shared/AudioPlayer'
 import ExaggerationSlider from '../shared/ExaggerationSlider'
 import GenerateButton from '../shared/GenerateButton'
-import TagHelper from '../shared/TagHelper'
+
 import { useTTS } from '../../hooks/useTTS'
 import { useModelStatus } from '../../hooks/useModelStatus'
 import { useAppStore } from '../../store/app-store'
@@ -39,7 +39,6 @@ export default function EchoPage() {
   const { encodeSpeaker, generate, isSpeakerEncoded } = useTTS()
   const echo = useAppStore((s) => s.echo)
   const setEcho = useAppStore((s) => s.setEcho)
-  const textareaRef = useRef(null)
   const directionRef = useRef(1)
 
   const { step, voiceAudio, text, templateId, generatedAudio, generating } = echo
@@ -102,28 +101,6 @@ export default function EchoPage() {
     })
     directionRef.current = -1
   }, [setEcho])
-
-  const handleInsertTag = useCallback(
-    (tag) => {
-      const el = textareaRef.current
-      if (el) {
-        const start = el.selectionStart
-        const end = el.selectionEnd
-        const before = text.slice(0, start)
-        const after = text.slice(end)
-        const updated = before + tag + ' ' + after
-        setEcho({ text: updated })
-        requestAnimationFrame(() => {
-          el.focus()
-          const cursor = start + tag.length + 1
-          el.setSelectionRange(cursor, cursor)
-        })
-      } else {
-        setEcho({ text: text + tag + ' ' })
-      }
-    },
-    [text, setEcho],
-  )
 
   // ---- Render ----
 
@@ -278,7 +255,6 @@ export default function EchoPage() {
                 <div className="space-y-2">
                   <label className="text-sm font-medium text-zinc-300">Your Message</label>
                   <textarea
-                    ref={textareaRef}
                     value={text}
                     onChange={(e) => setEcho({ text: e.target.value })}
                     placeholder="Type your voice message here..."
@@ -286,9 +262,6 @@ export default function EchoPage() {
                     className="w-full px-4 py-3 rounded-lg bg-zinc-900 border border-zinc-800 text-zinc-200 text-sm placeholder-zinc-600 focus:outline-none focus:border-violet-500/50 focus:ring-1 focus:ring-violet-500/25 resize-none transition-colors"
                   />
                 </div>
-
-                {/* Tag helper */}
-                <TagHelper onInsert={handleInsertTag} />
 
                 {/* Exaggeration slider */}
                 <ExaggerationSlider

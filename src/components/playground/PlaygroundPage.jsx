@@ -1,11 +1,11 @@
-import { useCallback, useRef, useState } from 'react'
+import { useCallback, useState } from 'react'
 import ModeHeader from '../layout/ModeHeader'
 import ModelLoader from '../shared/ModelLoader'
 import VoiceRecorder from '../shared/VoiceRecorder'
 import AudioPlayer from '../shared/AudioPlayer'
 import ExaggerationSlider from '../shared/ExaggerationSlider'
 import GenerateButton from '../shared/GenerateButton'
-import TagHelper from '../shared/TagHelper'
+
 import { useTTS } from '../../hooks/useTTS'
 import { useModelStatus } from '../../hooks/useModelStatus'
 import { useAppStore } from '../../store/app-store'
@@ -19,7 +19,6 @@ export default function PlaygroundPage() {
   const playground = useAppStore((s) => s.playground)
   const setPlayground = useAppStore((s) => s.setPlayground)
 
-  const textareaRef = useRef(null)
   const [encodingVoice, setEncodingVoice] = useState(false)
 
   // --- Voice handling ---
@@ -28,29 +27,6 @@ export default function PlaygroundPage() {
       setPlayground({ voiceAudio: audioData })
     },
     [setPlayground],
-  )
-
-  // --- Tag insertion ---
-  const handleInsertTag = useCallback(
-    (tag) => {
-      const ta = textareaRef.current
-      if (!ta) {
-        setPlayground({ text: playground.text + tag })
-        return
-      }
-      const start = ta.selectionStart
-      const end = ta.selectionEnd
-      const before = playground.text.slice(0, start)
-      const after = playground.text.slice(end)
-      const newText = before + tag + after
-      setPlayground({ text: newText })
-      // Restore cursor after the inserted tag
-      requestAnimationFrame(() => {
-        ta.selectionStart = ta.selectionEnd = start + tag.length
-        ta.focus()
-      })
-    },
-    [playground.text, setPlayground],
   )
 
   // --- Generation flow ---
@@ -124,14 +100,12 @@ export default function PlaygroundPage() {
                     Text to Speak
                   </label>
                   <textarea
-                    ref={textareaRef}
                     value={playground.text}
                     onChange={(e) => setPlayground({ text: e.target.value })}
                     placeholder="Type or paste the text you want to convert to speech..."
                     rows={6}
                     className="w-full rounded-lg border border-zinc-700 bg-zinc-900 px-4 py-3 text-sm text-zinc-100 placeholder-zinc-600 focus:border-violet-500 focus:ring-1 focus:ring-violet-500 focus:outline-none resize-y"
                   />
-                  <TagHelper onInsert={handleInsertTag} />
                 </div>
 
                 {/* Exaggeration Slider */}
