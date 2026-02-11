@@ -13,7 +13,7 @@ export default function Sidebar() {
   const { isReady, isLoading } = useModelStatus()
 
   return (
-    <aside className="fixed left-0 top-0 bottom-0 w-[var(--sidebar-width)] bg-zinc-925 border-r border-zinc-800 flex flex-col z-50">
+    <aside className="sticky top-0 h-screen w-[var(--sidebar-width)] shrink-0 bg-zinc-925 border-r border-zinc-800 flex flex-col z-50">
       <div className="p-5 border-b border-zinc-800">
         <h1 className="text-lg font-bold tracking-tight">
           <span className="text-gradient bg-gradient-to-r from-violet-400 to-pink-400">
@@ -106,3 +106,4 @@ function NarratorIcon(props) {
     </svg>
   )
 }
+
