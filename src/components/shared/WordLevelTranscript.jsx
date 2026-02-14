@@ -1,4 +1,4 @@
-import { useMemo } from 'react'
+import { useEffect, useMemo, useRef } from 'react'
 
 function tokenizeWithFallback(text, duration) {
   const words = text
@@ -17,7 +17,7 @@ function tokenizeWithFallback(text, duration) {
   }))
 }
 
-export default function WordLevelTranscript({ text, wordTimestamps, currentTime, duration }) {
+export default function WordLevelTranscript({ text, wordTimestamps, currentTime, duration, title = 'Transcript', maxHeightClass = 'max-h-32' }) {
   const tokens = useMemo(() => {
     if (Array.isArray(wordTimestamps) && wordTimestamps.length > 0) {
       return wordTimestamps
@@ -36,19 +36,31 @@ export default function WordLevelTranscript({ text, wordTimestamps, currentTime,
     return tokenizeWithFallback(text, duration)
   }, [duration, text, wordTimestamps])
 
+  const activeTokenRef = useRef(null)
+
+  useEffect(() => {
+    if (!activeTokenRef.current) return
+    activeTokenRef.current.scrollIntoView({
+      behavior: 'smooth',
+      block: 'nearest',
+      inline: 'nearest',
+    })
+  }, [currentTime])
+
   if (tokens.length === 0) return null
 
   return (
     <div className="rounded-lg border border-zinc-800 bg-zinc-900/30 p-3">
       <p className="text-[11px] uppercase tracking-wide text-zinc-500 mb-2">
-        Transcript ({Array.isArray(wordTimestamps) && wordTimestamps.length > 0 ? 'word timestamps' : 'estimated timing'})
+        {title} ({Array.isArray(wordTimestamps) && wordTimestamps.length > 0 ? 'word timestamps' : 'estimated timing'})
       </p>
-      <div className="leading-7">
+      <div className={`overflow-y-auto pr-1 leading-7 ${maxHeightClass}`}>
         {tokens.map((token, index) => {
           const isActive = currentTime >= token.start && currentTime < token.end
           return (
             <span
               key={`${token.word}-${index}-${token.start}`}
+              ref={isActive ? activeTokenRef : null}
               className={`mr-1.5 rounded px-1 py-0.5 text-sm transition-colors ${isActive ? 'bg-violet-500/30 text-violet-200' : 'text-zinc-300'}`}
             >
               {token.word}
