@@ -12,7 +12,9 @@ export function useTTSQueue({ generateChunked, ensureSpeaker, abortGeneration })
   const [jobs, setJobs] = useState([])
   const [running, setRunning] = useState(false)
   const abortRef = useRef(false)
+  const runningRef = useRef(false)
   const jobsRef = useRef([])
+  const nextJobNumberRef = useRef(1)
 
   useEffect(() => {
     jobsRef.current = jobs
@@ -30,9 +32,9 @@ export function useTTSQueue({ generateChunked, ensureSpeaker, abortGeneration })
     const newJobs = texts
       .map((text) => text.trim())
       .filter(Boolean)
-      .map((text, index) => ({
+      .map((text) => ({
         id: crypto.randomUUID(),
-        title: `Job ${index + 1}`,
+        title: `Job ${nextJobNumberRef.current++}`,
         text,
         status: 'queued',
         output: null,
@@ -69,14 +71,24 @@ export function useTTSQueue({ generateChunked, ensureSpeaker, abortGeneration })
   }, [])
 
   const clearAll = useCallback(() => {
-    if (running) return
+    if (runningRef.current) return
     setJobs([])
-  }, [running])
+  }, [])
 
   const start = useCallback(async (speakerId, exaggeration) => {
-    if (running) return
+    if (runningRef.current) return
+
+    runningRef.current = true
     abortRef.current = false
     setRunning(true)
+
+    const resetProcessingJobs = jobsRef.current.map((job) => (
+      job.status === 'processing'
+        ? { ...job, status: 'queued' }
+        : job
+    ))
+    jobsRef.current = resetProcessingJobs
+    setJobs(resetProcessingJobs)
 
     try {
       await ensureSpeaker(speakerId)
@@ -125,12 +137,14 @@ export function useTTSQueue({ generateChunked, ensureSpeaker, abortGeneration })
         }
       }
     } finally {
+      runningRef.current = false
       setRunning(false)
     }
-  }, [ensureSpeaker, generateChunked, running])
+  }, [ensureSpeaker, generateChunked])
 
   const stop = useCallback(() => {
     abortRef.current = true
+    runningRef.current = false
     abortGeneration?.()
     setRunning(false)
   }, [abortGeneration])
