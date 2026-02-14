@@ -2,11 +2,10 @@ import { useCallback, useMemo, useState } from 'react'
 import ModeHeader from '../layout/ModeHeader'
 import ModelLoader from '../shared/ModelLoader'
 import VoiceRecorder from '../shared/VoiceRecorder'
-import AudioPlayer from '../shared/AudioPlayer'
 import ExaggerationSlider from '../shared/ExaggerationSlider'
 import GenerateButton from '../shared/GenerateButton'
 import ChunkProgressBar from '../shared/ChunkProgressBar'
-import WordLevelTranscript from '../shared/WordLevelTranscript'
+import AudioTranscriptModal from '../shared/AudioTranscriptModal'
 
 import { useChunkedTTS } from '../../hooks/useChunkedTTS'
 import { useModelStatus } from '../../hooks/useModelStatus'
@@ -32,10 +31,7 @@ export default function PlaygroundPage() {
   const [voiceName, setVoiceName] = useState('')
   const [selectedVoiceId, setSelectedVoiceId] = useState(null)
   const [queueInput, setQueueInput] = useState('')
-  const [previewTime, setPreviewTime] = useState(0)
-  const [previewDuration, setPreviewDuration] = useState(0)
-  const [jobPlayback, setJobPlayback] = useState({})
-  const [activeQueueTranscriptId, setActiveQueueTranscriptId] = useState(null)
+  const [modalData, setModalData] = useState(null)
 
   const {
     voices,
@@ -136,7 +132,6 @@ export default function PlaygroundPage() {
       : null
 
   const canGenerate = !!(playground.voiceAudio && playground.text.trim() && activeSpeakerId)
-  const activeQueueJob = queue.jobs.find((job) => job.id === activeQueueTranscriptId) ?? null
   const generateLabel = encodingVoice
     ? 'Encoding Voice...'
     : playground.generating
@@ -259,83 +254,50 @@ export default function PlaygroundPage() {
                     </button>
                   </div>
 
-                  <div className="grid gap-3 lg:grid-cols-2">
-                    <div className="max-h-72 overflow-y-auto space-y-2 pr-1">
-                      {queue.jobs.length === 0 && (
-                        <p className="text-xs text-zinc-500">No jobs queued yet.</p>
-                      )}
-                      {queue.jobs.map((job) => (
-                        <div key={job.id} className="rounded border border-zinc-800 bg-zinc-950/70 p-2 text-xs">
-                          <div className="flex items-center justify-between gap-2">
-                            <p className="text-zinc-200 truncate">{job.title}</p>
-                            <span className="text-zinc-500 uppercase">{job.status}</span>
-                          </div>
-                          {job.error && <p className="text-red-400 mt-1">{job.error}</p>}
-                          {job.output?.url && (
-                            <div className="mt-2 space-y-2">
-                              <audio
-                                controls
-                                preload="none"
-                                src={job.output.url}
-                                className="w-full h-8"
-                                onPlay={() => setActiveQueueTranscriptId(job.id)}
-                                onTimeUpdate={(e) => {
-                                  const el = e.currentTarget
-                                  setActiveQueueTranscriptId(job.id)
-                                  setJobPlayback((prev) => ({
-                                    ...prev,
-                                    [job.id]: {
-                                      ...prev[job.id],
-                                      currentTime: el.currentTime,
-                                      duration: Number.isFinite(el.duration) ? el.duration : prev[job.id]?.duration || 0,
-                                    },
-                                  }))
-                                }}
-                                onLoadedMetadata={(e) => {
-                                  const el = e.currentTarget
-                                  setJobPlayback((prev) => ({
-                                    ...prev,
-                                    [job.id]: {
-                                      ...prev[job.id],
-                                      duration: Number.isFinite(el.duration) ? el.duration : 0,
-                                    },
-                                  }))
-                                }}
-                              />
-                              <div className="flex items-center justify-between">
-                                <button
-                                  type="button"
-                                  onClick={() => setActiveQueueTranscriptId(job.id)}
-                                  className={`text-[11px] px-2 py-1 rounded ${activeQueueTranscriptId === job.id ? 'bg-violet-600 text-white' : 'bg-zinc-800 text-zinc-300 hover:bg-zinc-700'}`}
-                                >
-                                  {activeQueueTranscriptId === job.id ? 'Viewing transcript' : 'View transcript'}
-                                </button>
-                                <a href={job.output.url} download={`${job.title.replace(/\.[^/.]+$/, '')}.wav`} className="text-violet-400 hover:text-violet-300 inline-block">
-                                  Download WAV
-                                </a>
-                              </div>
-                            </div>
-                          )}
+                  <div className="max-h-72 overflow-y-auto space-y-2 pr-1">
+                    {queue.jobs.length === 0 && (
+                      <p className="text-xs text-zinc-500">No jobs queued yet.</p>
+                    )}
+                    {queue.jobs.map((job) => (
+                      <div key={job.id} className="rounded border border-zinc-800 bg-zinc-950/70 p-2 text-xs">
+                        <div className="flex items-center justify-between gap-2">
+                          <p className="text-zinc-200 truncate flex-1">{job.title}</p>
+                          <span className={`uppercase shrink-0 ${job.status === 'done' ? 'text-emerald-500' : job.status === 'failed' ? 'text-red-400' : job.status === 'processing' ? 'text-violet-400' : 'text-zinc-500'}`}>
+                            {job.status}
+                          </span>
                         </div>
-                      ))}
-                    </div>
-
-                    <div className="rounded-lg border border-zinc-800 bg-zinc-950/50 p-3 min-h-48">
-                      {activeQueueJob?.output?.url ? (
-                        <WordLevelTranscript
-                          title={`Current transcript: ${activeQueueJob.title}`}
-                          text={activeQueueJob.text}
-                          wordTimestamps={activeQueueJob.output.wordTimestamps}
-                          currentTime={jobPlayback[activeQueueJob.id]?.currentTime ?? 0}
-                          duration={jobPlayback[activeQueueJob.id]?.duration ?? 0}
-                          maxHeightClass="max-h-60"
-                        />
-                      ) : (
-                        <p className="text-xs text-zinc-500">
-                          Select a finished job (or press play) to view a synchronized transcript panel.
-                        </p>
-                      )}
-                    </div>
+                        {job.error && <p className="text-red-400 mt-1">{job.error}</p>}
+                        {job.output?.waveform && (
+                          <div className="mt-2 flex items-center gap-2">
+                            <button
+                              type="button"
+                              onClick={() =>
+                                setModalData({
+                                  title: job.title,
+                                  text: job.text,
+                                  audioData: job.output.waveform,
+                                  wordTimestamps: job.output.wordTimestamps,
+                                  downloadFilename: `${job.title.replace(/\.[^/.]+$/, '')}.wav`,
+                                })
+                              }
+                              className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-md bg-violet-600 hover:bg-violet-500 text-white transition-colors"
+                            >
+                              <svg viewBox="0 0 24 24" fill="white" className="w-3 h-3">
+                                <polygon points="5 3 19 12 5 21 5 3" />
+                              </svg>
+                              Play with transcript
+                            </button>
+                            <a
+                              href={job.output.url}
+                              download={`${job.title.replace(/\.[^/.]+$/, '')}.wav`}
+                              className="text-violet-400 hover:text-violet-300 text-[11px]"
+                            >
+                              Download
+                            </a>
+                          </div>
+                        )}
+                      </div>
+                    ))}
                   </div>
                 </div>
               </div>
@@ -405,28 +367,44 @@ export default function PlaygroundPage() {
                     <label className="text-sm font-medium text-zinc-300">
                       Generated Output
                     </label>
-                    <AudioPlayer
-                      audioData={playground.generatedAudio}
-                      sampleRate={SAMPLE_RATE}
-                      autoPlay
-                      onTimeChange={setPreviewTime}
-                      onDurationChange={setPreviewDuration}
-                    />
-                    <WordLevelTranscript
-                      text={playground.text}
-                      wordTimestamps={playground.generatedWordTimestamps}
-                      currentTime={previewTime}
-                      duration={previewDuration}
-                    />
-                    <button
-                      type="button"
-                      onClick={() => {
-                        downloadBlob(encodeWAV(playground.generatedAudio), 'playground-output.wav')
-                      }}
-                      className="px-3 py-1.5 text-xs rounded-md bg-zinc-800 text-zinc-200 hover:bg-zinc-700"
-                    >
-                      Download WAV
-                    </button>
+                    <div className="rounded-xl border border-zinc-800 bg-zinc-900/50 p-4 flex items-center gap-4">
+                      <button
+                        type="button"
+                        onClick={() =>
+                          setModalData({
+                            title: 'Generated Speech',
+                            text: playground.text,
+                            audioData: playground.generatedAudio,
+                            wordTimestamps: playground.generatedWordTimestamps,
+                            downloadFilename: 'playground-output.wav',
+                          })
+                        }
+                        className="w-11 h-11 flex items-center justify-center rounded-full bg-violet-600 hover:bg-violet-500 active:scale-95 transition-all shrink-0 shadow-lg shadow-violet-600/20"
+                      >
+                        <svg viewBox="0 0 24 24" fill="white" className="w-5 h-5 ml-0.5">
+                          <polygon points="6 3 20 12 6 21 6 3" />
+                        </svg>
+                      </button>
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm text-zinc-200 font-medium">Play with transcript</p>
+                        <p className="text-xs text-zinc-500 mt-0.5">
+                          {audioDuration != null ? `${audioDuration.toFixed(1)}s` : ''}
+                          {playground.generatedWordTimestamps ? ' \u00b7 word-level sync' : ' \u00b7 estimated timing'}
+                        </p>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => downloadBlob(encodeWAV(playground.generatedAudio), 'playground-output.wav')}
+                        className="p-2 rounded-lg text-zinc-400 hover:text-zinc-200 hover:bg-zinc-800 transition-colors shrink-0"
+                        title="Download WAV"
+                      >
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} className="w-4 h-4">
+                          <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+                          <polyline points="7 10 12 15 17 10" />
+                          <line x1="12" y1="15" x2="12" y2="3" />
+                        </svg>
+                      </button>
+                    </div>
                   </div>
                 )}
 
@@ -465,6 +443,15 @@ export default function PlaygroundPage() {
           )}
         </div>
       </div>
+      <AudioTranscriptModal
+        open={modalData !== null}
+        onClose={() => setModalData(null)}
+        title={modalData?.title}
+        text={modalData?.text}
+        audioData={modalData?.audioData}
+        wordTimestamps={modalData?.wordTimestamps}
+        downloadFilename={modalData?.downloadFilename}
+      />
     </div>
   )
 }
