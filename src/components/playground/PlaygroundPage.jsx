@@ -259,9 +259,12 @@ export default function PlaygroundPage() {
                         </div>
                         {job.error && <p className="text-red-400 mt-1">{job.error}</p>}
                         {job.output?.url && (
-                          <a href={job.output.url} download={`${job.title.replace(/\.[^/.]+$/, '')}.wav`} className="text-violet-400 hover:text-violet-300 mt-1 inline-block">
-                            Download WAV
-                          </a>
+                          <div className="mt-2 space-y-2">
+                            <audio controls preload="none" src={job.output.url} className="w-full h-8" />
+                            <a href={job.output.url} download={`${job.title.replace(/\.[^/.]+$/, '')}.wav`} className="text-violet-400 hover:text-violet-300 inline-block">
+                              Download WAV
+                            </a>
+                          </div>
                         )}
                       </div>
                     ))}

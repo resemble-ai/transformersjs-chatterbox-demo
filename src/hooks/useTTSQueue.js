@@ -115,25 +115,21 @@ export function useTTSQueue({ generateChunked, ensureSpeaker, abortGeneration })
           const wavBlob = encodeWAV(result.waveform)
           const url = URL.createObjectURL(wavBlob)
 
-          setJobs((prev) => {
-            const updated = prev.map((j) => (
-              j.id === currentJob.id
-                ? { ...j, status: 'done', output: { url, waveform: result.waveform }, error: null }
-                : j
-            ))
-            jobsRef.current = updated
-            return updated
-          })
+          const updated = jobsRef.current.map((j) => (
+            j.id === currentJob.id
+              ? { ...j, status: 'done', output: { url, waveform: result.waveform }, error: null }
+              : j
+          ))
+          jobsRef.current = updated
+          setJobs(updated)
         } catch (error) {
-          setJobs((prev) => {
-            const updated = prev.map((j) => (
-              j.id === currentJob.id
-                ? { ...j, status: 'failed', error: error.message }
-                : j
-            ))
-            jobsRef.current = updated
-            return updated
-          })
+          const updated = jobsRef.current.map((j) => (
+            j.id === currentJob.id
+              ? { ...j, status: 'failed', error: error.message }
+              : j
+          ))
+          jobsRef.current = updated
+          setJobs(updated)
         }
       }
     } finally {
