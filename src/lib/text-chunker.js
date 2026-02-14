@@ -21,6 +21,29 @@ export function splitTextIntoChunks(text, maxChars = MAX_CHUNK_CHARS) {
   const trimmed = text.trim()
   if (!trimmed) return []
 
+  const manualChunks = trimmed
+    .split('|')
+    .map((chunk) => chunk.trim())
+    .filter(Boolean)
+
+  if (manualChunks.length > 1) {
+    const chunks = []
+
+    manualChunks.forEach((manualChunk, index) => {
+      const splitChunk = splitTextIntoChunks(manualChunk, maxChars)
+      if (splitChunk.length === 0) return
+
+      // Only the first chunk in the entire response should start a paragraph
+      if (index > 0 && splitChunk[0]?.type === 'paragraph_start') {
+        splitChunk[0] = { ...splitChunk[0], type: 'sentence' }
+      }
+
+      chunks.push(...splitChunk)
+    })
+
+    return chunks
+  }
+
   // If the whole text fits, return as a single chunk
   if (trimmed.length <= maxChars) {
     return [{ text: trimmed, type: 'paragraph_start' }]
