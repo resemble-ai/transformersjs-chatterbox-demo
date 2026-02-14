@@ -35,6 +35,7 @@ export default function PlaygroundPage() {
   const [previewTime, setPreviewTime] = useState(0)
   const [previewDuration, setPreviewDuration] = useState(0)
   const [jobPlayback, setJobPlayback] = useState({})
+  const [activeQueueTranscriptId, setActiveQueueTranscriptId] = useState(null)
 
   const {
     voices,
@@ -135,6 +136,7 @@ export default function PlaygroundPage() {
       : null
 
   const canGenerate = !!(playground.voiceAudio && playground.text.trim() && activeSpeakerId)
+  const activeQueueJob = queue.jobs.find((job) => job.id === activeQueueTranscriptId) ?? null
   const generateLabel = encodingVoice
     ? 'Encoding Voice...'
     : playground.generating
@@ -257,59 +259,83 @@ export default function PlaygroundPage() {
                     </button>
                   </div>
 
-                  <div className="max-h-48 overflow-y-auto space-y-2">
-                    {queue.jobs.length === 0 && (
-                      <p className="text-xs text-zinc-500">No jobs queued yet.</p>
-                    )}
-                    {queue.jobs.map((job) => (
-                      <div key={job.id} className="rounded border border-zinc-800 bg-zinc-950/70 p-2 text-xs">
-                        <div className="flex items-center justify-between gap-2">
-                          <p className="text-zinc-200 truncate">{job.title}</p>
-                          <span className="text-zinc-500 uppercase">{job.status}</span>
-                        </div>
-                        {job.error && <p className="text-red-400 mt-1">{job.error}</p>}
-                        {job.output?.url && (
-                          <div className="mt-2 space-y-2">
-                            <audio
-                              controls
-                              preload="none"
-                              src={job.output.url}
-                              className="w-full h-8"
-                              onTimeUpdate={(e) => {
-                                const el = e.currentTarget
-                                setJobPlayback((prev) => ({
-                                  ...prev,
-                                  [job.id]: {
-                                    ...prev[job.id],
-                                    currentTime: el.currentTime,
-                                    duration: Number.isFinite(el.duration) ? el.duration : prev[job.id]?.duration || 0,
-                                  },
-                                }))
-                              }}
-                              onLoadedMetadata={(e) => {
-                                const el = e.currentTarget
-                                setJobPlayback((prev) => ({
-                                  ...prev,
-                                  [job.id]: {
-                                    ...prev[job.id],
-                                    duration: Number.isFinite(el.duration) ? el.duration : 0,
-                                  },
-                                }))
-                              }}
-                            />
-                            <WordLevelTranscript
-                              text={job.text}
-                              wordTimestamps={job.output.wordTimestamps}
-                              currentTime={jobPlayback[job.id]?.currentTime ?? 0}
-                              duration={jobPlayback[job.id]?.duration ?? 0}
-                            />
-                            <a href={job.output.url} download={`${job.title.replace(/\.[^/.]+$/, '')}.wav`} className="text-violet-400 hover:text-violet-300 inline-block">
-                              Download WAV
-                            </a>
+                  <div className="grid gap-3 lg:grid-cols-2">
+                    <div className="max-h-72 overflow-y-auto space-y-2 pr-1">
+                      {queue.jobs.length === 0 && (
+                        <p className="text-xs text-zinc-500">No jobs queued yet.</p>
+                      )}
+                      {queue.jobs.map((job) => (
+                        <div key={job.id} className="rounded border border-zinc-800 bg-zinc-950/70 p-2 text-xs">
+                          <div className="flex items-center justify-between gap-2">
+                            <p className="text-zinc-200 truncate">{job.title}</p>
+                            <span className="text-zinc-500 uppercase">{job.status}</span>
                           </div>
-                        )}
-                      </div>
-                    ))}
+                          {job.error && <p className="text-red-400 mt-1">{job.error}</p>}
+                          {job.output?.url && (
+                            <div className="mt-2 space-y-2">
+                              <audio
+                                controls
+                                preload="none"
+                                src={job.output.url}
+                                className="w-full h-8"
+                                onPlay={() => setActiveQueueTranscriptId(job.id)}
+                                onTimeUpdate={(e) => {
+                                  const el = e.currentTarget
+                                  setActiveQueueTranscriptId(job.id)
+                                  setJobPlayback((prev) => ({
+                                    ...prev,
+                                    [job.id]: {
+                                      ...prev[job.id],
+                                      currentTime: el.currentTime,
+                                      duration: Number.isFinite(el.duration) ? el.duration : prev[job.id]?.duration || 0,
+                                    },
+                                  }))
+                                }}
+                                onLoadedMetadata={(e) => {
+                                  const el = e.currentTarget
+                                  setJobPlayback((prev) => ({
+                                    ...prev,
+                                    [job.id]: {
+                                      ...prev[job.id],
+                                      duration: Number.isFinite(el.duration) ? el.duration : 0,
+                                    },
+                                  }))
+                                }}
+                              />
+                              <div className="flex items-center justify-between">
+                                <button
+                                  type="button"
+                                  onClick={() => setActiveQueueTranscriptId(job.id)}
+                                  className={`text-[11px] px-2 py-1 rounded ${activeQueueTranscriptId === job.id ? 'bg-violet-600 text-white' : 'bg-zinc-800 text-zinc-300 hover:bg-zinc-700'}`}
+                                >
+                                  {activeQueueTranscriptId === job.id ? 'Viewing transcript' : 'View transcript'}
+                                </button>
+                                <a href={job.output.url} download={`${job.title.replace(/\.[^/.]+$/, '')}.wav`} className="text-violet-400 hover:text-violet-300 inline-block">
+                                  Download WAV
+                                </a>
+                              </div>
+                            </div>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+
+                    <div className="rounded-lg border border-zinc-800 bg-zinc-950/50 p-3 min-h-48">
+                      {activeQueueJob?.output?.url ? (
+                        <WordLevelTranscript
+                          title={`Current transcript: ${activeQueueJob.title}`}
+                          text={activeQueueJob.text}
+                          wordTimestamps={activeQueueJob.output.wordTimestamps}
+                          currentTime={jobPlayback[activeQueueJob.id]?.currentTime ?? 0}
+                          duration={jobPlayback[activeQueueJob.id]?.duration ?? 0}
+                          maxHeightClass="max-h-60"
+                        />
+                      ) : (
+                        <p className="text-xs text-zinc-500">
+                          Select a finished job (or press play) to view a synchronized transcript panel.
+                        </p>
+                      )}
+                    </div>
                   </div>
                 </div>
               </div>
